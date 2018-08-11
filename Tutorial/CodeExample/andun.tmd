@@ -1,0 +1,23 @@
+# 案楯
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class Andun : public ProhibitSkill
+{
+
+public:
+	Andun() : ProhibitSkill("andun")
+	{
+	}
+
+	virtual bool isProhibited(const Player *from, const Player *to, const Card *card) const
+	{
+		return to->hasSkill(this) && card->isKindOf("Slash") && from->getHp() > to->getHp();
+	}
+};
+```
+
+[点击此处返回第一节|../PackageTutorial/PS-DS-MCS.tmd#禁止技]

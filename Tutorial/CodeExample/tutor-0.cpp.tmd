@@ -1,0 +1,19 @@
+# tutor.cpp（第〇节进度）
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+#include "tutor.h"
+#include "general.h"
+
+TutorPackage::TutorPackage() : Package("tutor")
+{
+	General *mash = new General(this, "mash", "shielder", 4, false);
+}
+
+ADD_PACKAGE(Tutor)
+```
+
+[点击此处返回第〇节|../PackageTutorial/Initial.tmd#向扩展包内添加武将]

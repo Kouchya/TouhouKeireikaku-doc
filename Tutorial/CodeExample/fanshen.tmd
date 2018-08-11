@@ -1,0 +1,55 @@
+# 梵神
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class Fanshen : public OneCardViewAsSkill
+{
+
+public:
+	Fanshen() : OneCardViewAsSkill("fanshen")
+	{
+		filter_pattern = ".|diamond|.|hand";
+	}
+
+	virtual bool isEnabledAtPlay(const Player *player) const
+	{
+		return !player->isKongcheng();
+	}
+
+	virtual const Card *viewAs(const Card *originalCard) const
+	{
+		FireSlash *card = new FireSlash(Card::SuitToBeDecided, -1);
+		card->addSubcard(originalCard);
+		card->setSkillName(objectName());
+		return card;
+	}
+};
+
+class FanshenTM : public TargetModSkill
+{
+
+public:
+	FanshenTM() : TargetModSkill("#fanshen-tm")
+	{
+		pattern = "FireSlash";
+	}
+
+	virtual bool noLimit(const Player *player, const Card *) const
+	{
+		return player->hasSkill(this);
+	}
+};
+```
+
+添加技能代码：
+
+```cpp
+karna->addSkill(new Fanshen);
+karna->addSkill(new FanshenTM);
+related_skills.insertMulti("fanshen", "#fanshen-tm");
+```
+
+[点击此处返回第三节|../PackageTutorial/VS-OCV.tmd#练习]

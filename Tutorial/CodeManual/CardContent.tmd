@@ -1,0 +1,159 @@
+# 卡牌信息
+
+**本文档属于东方启灵阁开发手册。不参与源代码开发的用户可以忽略这部分内容。**
+
+## 花色·点数
+
+与标准扑克牌相同，东方启灵阁的游戏牌有四种**花色**，分别为红桃、方片、黑桃、梅花。同样地，这些游戏牌有**点数**的概念，其取值为A,2,3,4,5,6,7,8,9,10,J,Q,K中的一种。
+
+在东方启灵阁的代码中，四种花色分别以如下方式表示：
+
+=		=		=
+*花色 	英文名	枚举类型
+红桃		heart	Card::Heart
+方片		diamond	Card::Diamond
+黑桃		spade	Card::Spade
+梅花		club	Card::Club
+
+东方启灵阁定义了牌的**颜色**概念。在上述花色中，红桃和方片统称为**红色**，字符串表示为"red"，枚举类型Card::Red；黑桃和梅花统称为**黑色**，字符串表示为"black"，枚举类型为Card::Black。
+
+此外，考虑到诸如【魔导书】【八尺镜】等牌的效果，一些牌可能有颜色无花色，甚至无颜色。这些特殊花色或颜色没有对应的字符串表示，但它们的枚举值是存在的。它们在下方被列出：
+
+=			=
+*花色/颜色	枚举类型
+红色无花色	Card::NoSuitRed
+黑色无花色	Card::NoSuitBlack
+无花色		Card::NoSuit
+无颜色		Card::Colorless
+
+注意到红色无花色和黑色无花色都是无花色的子集，但从强类型（事实上C++就是强类型的）角度来说无颜色不是，这是因为无颜色是一种颜色，用程序语言描述就是`Card::Color`的一个枚举值，而前三种都是花色，即`Card::Suit`的枚举值。这是在进行一些条件判断时需要注意的地方。
+
+还存在一种非正式花色，称为**待定**，其枚举类型为`Card::SuitToBeDecided`。这种花色是作为一个中间状态存在的，一旦一张牌被指定了该花色，那么当这张牌被以动态的方式添加了子卡时，其花色也会动态地改变。
+
+东方启灵阁对点数的处理十分简单。只需注意到A=1，J=11，Q=12，K=13，其他点数都对应相应的数字。另外，用0表示无点数，-1作为点数的用途相当于花色中的`Card::SuitToBeDecided`。
+
+## 类别
+
+东方启灵阁中的牌有四种类别，分别为：
+
+=			=			=
+*类别		类名			枚举类型
+基本牌		BasicCard	Card::TypeBasic
+锦囊牌		TrickCard	Card::TypeTrick
+装备牌		EquipCard	Card::TypeEquip
+技能卡		SkillCard	Card::TypeSkill
+
+锦囊牌的子类别：
+
+=			=
+*子类别		类名
+全体影响		GlobalEffect
+范围伤害		AOE
+单体锦囊		SingleTargetTrick
+延时锦囊		DelayedTrick
+天灾			Disaster
+
+装备牌的子类别：
+
+=			=				=
+*子类别		类名				子类编号
+武器牌		Weapon			0
+防具牌		Armor			1
++1人形		DefensiveHorse	2
+-1人形		OffensiveHorse	3
+宝物牌		Treasure		4
+
+## 牌名
+
+下面列出了东方启灵阁所有游戏牌的英文名称和类名：
+
+=				=					=
+*牌名			英文名称				类名
+杀\*				slash				Slash
+火杀				fire_slash			FireSlash
+雷杀				thunder_slash		ThunderSlash
+闪				jink				Jink
+桃				peach				Peach
+酒				analeptic			Analeptic
+废烬残蚀			dismantlement		Dismantlement
+禁地藉略			snatch				Snatch
+无中生有			ex_nihilo			ExNihilo
+纵驭刃息			collateral			Collateral
+冰尘蚀骨			icy_fog				IcyFog
+妖山天岚			haze				Haze
+诹访决战			duel				Duel
+五谷丰登			amazing_grace		AmazingGrace
+读心术			mind_reading		MindReading
+人形操纵			savage_assault		SavageAssault
+弹幕				archery_attack		ArcheryAttack
+幻落樱芳			god_salvation		GodSalvation
+无懈可击			nullification		Nullification
+火攻				fire_attack			FireAttack
+鬼缚金锁			iron_chain			IronChain
+天穹地界			lightning			Lightning
+无何有乡			indulgence			Indulgence
+神社贡赋			supply_shortage		SupplyShortage
+八卦炉			Crossbow			Crossbow
+冈格尼尔			QinggangSword		QinggangSword
+寒冰锥			IceSword			IceSword
+菊花印			GudingBlade			GudingBlade
+魔导书			Spear				Spear
+陷阱网			Blade				Blade
+追踪札			Axe					Axe
+红叶扇			Halberd				Halberd
+莱瓦汀			Fan					Fan
+八尺镜			EightDiagram		EightDiagram
+夜雀之翼			RenwangShield		RenwangShield
+神德魔阵			Vine				Vine
+洩矢铁轮			SilverLion			SilverLion
+蓬莱人形\*\*		JueYing				DefensiveHorse
+蓬莱人形			DiLu				DefensiveHorse
+蓬莱人形			ZhuaHuangFeiDian	DefensiveHorse
+蓬莱人形			HuaLiu				DefensiveHorse
+上海人形			ChiTu				OffensiveHorse
+上海人形			DaYuan				OffensiveHorse
+上海人形			ZiXing				OffensiveHorse
+阴阳玉			wooden_ox			WoodenOx
+
+\**注：`Slash`指代所有属性的杀。普通杀没有专属的类，但可以用card->isKindOf("NormalSlash")判断card是否为普通杀。*
+\*\**注：所有蓬莱人形都是`DefensiveHorse`类的实例，所有上海人形都是`OffensiveHorse`的实例，但由于东方启灵阁的原型——太阳神三国杀的命名方式，每个蓬莱人形、每个上海人形的英文名称都不同。*
+
+## 模式
+
+一张牌的**模式**或ExpPattern或pattern是一个QString串，其由三个`|`符号分割成四部分。
+
+- 第一部分：类别/类名
+  - 点击链接查看所有可选的[类别和类名|#类别]。用`,`分隔表示“逻辑或”关系。用`+`分隔表示“逻辑与”关系。在某个类别或类名前加`^`表示“逻辑非”关系。
+  - *例：BasicCard,EquipCard：基本牌或装备牌。*
+  - *例：TrickCard+^DelayedTrick+^Nullification：无懈可击以外的非延时锦囊。*
+- 第二部分：花色/颜色
+  - 点击链接查看所有可选的[花色和颜色|#花色·点数]的英文名称。用`,`分隔表示“逻辑或”关系。在某个花色或颜色前加`^`表示“逻辑非”关系。
+  - *例：heart,diamond：红桃或方片。*
+  - *例：black：黑色。*
+  - *例：^club：非草花。*
+- 第三部分：点数
+  - 点击链接查看[点数的表示法|#花色·点数]。用`,`分隔表示“逻辑或”关系。若要表示连续的点数，可以在起始点数和终止点数之间加上`~`记号，该表示法是闭区间表示法。
+  - *例：1,3,5,7：点数A，3，5或7。*
+  - *例：9~12：点数9，10，J或Q。*
+- 第四部分：位置
+  - 可选元素通常而言只能是`hand`，`equip`。`hand`表示手牌，`equip`表示装备区内的牌。但是，如果是在单牌视为技的`filter_pattern`中，只要该技能声明了非空的`expand_pile`属性，则可选元素也包含`expand_pile`的值。用`,`分隔可选元素表示“逻辑或”关系。
+
+模式有一些简记法和扩展记法。需要注意的是不同场合的简记法有区别。
+
+
+- 单牌视为技的`filter_pattern`：
+  - 每个部分都可以只写一个`.`记号，表示全匹配。如果从某一部分（至少为第二部分）开始接下来的所有部分都是`.`，则从该部分前的那个`|`记号开始的字符都可以略去不写。如果四个部分均为`.`，则整个模式记作一个`.`记号。
+  - 如果该视为技对所选的牌的处理方式是弃置，则在整个模式后加`!`记号。
+- `Room::askForCard`中的`pattern`参数：
+  - 上述`.`记号在此情形下类似，但第四部分的缺省值为`hand`，其他意义相同。
+  - 如果要表示包括装备在内的所有牌均能使用，则模式为`..`。
+  - 如果第二部分为某个花色，第四部分为`hand`，其余部分为`.`，则可简记为`.`加该花色英文名首字母的大写。如：`.|club|.|hand` = `.C`。若第四部分为`.`，则简记法中的`.`改为`..`。如：`.|diamond` = `..D`。
+  - 如果第二部分为某种颜色，第四部分为`hand`，其余部分为`.`，则可简记为`.`加该颜色的英文名。如：`.|black|.|hand` = `.black`。
+  - 如果第一部分为某种类别名（不可为子类别），其余部分为`.`，则可简记为`.`加该类别名去掉`Card`。如：`BasicCard` = `.Basic`。
+  - `Weapon`可记为`.Weapon`。（这么做的意义不明，以后可能废除）
+  - 如果第一部分为以下类名中的一个，且其余部分为`.`，则可将类名的首字母小写。
+    - `Slash`
+    - `Jink`
+    - `Peach`
+    - `Nullification`
+  - `Peach,Analeptic`可以记为`peach+analeptic`。

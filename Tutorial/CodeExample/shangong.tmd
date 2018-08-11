@@ -1,0 +1,70 @@
+# 杉弓
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码（未指定pattern）
+
+```cpp
+class Shangong : public TargetModSkill
+{
+
+public:
+	Shangong() : TargetModSkill("shangong")
+	{
+	}
+
+	virtual bool noLimit(const Player *from, const Card *card) const
+	{
+		return from->hasSkill(this) && card->isKindOf("Slash") && from->getHandcardNum() <= from->getLostHp();
+	}
+
+	virtual int getDistanceLimit(const Player *from, const Card *card) const
+	{
+		if (from->hasSkill(this) && card->isKindOf("Slash") && from->getHandcardNum() <= from->getLostHp())
+			return 999;
+		return 0;
+	}
+
+	virtual int getExtraTargetNum(const Player *from, const Card *card) const
+	{
+		if (from->hasSkill(this) && card->isKindOf("Slash"))
+			return from->getLostHp();
+		return 0;
+	}
+};
+```
+
+## 代码（指定pattern）
+
+```cpp
+class Shangong : public TargetModSkill
+{
+
+public:
+	Shangong() : TargetModSkill("shangong")
+	{
+		pattern = "Slash";
+	}
+
+	virtual bool noLimit(const Player *from, const Card *) const
+	{
+		return from->hasSkill(this) && from->getHandcardNum() <= from->getLostHp();
+	}
+
+	virtual int getDistanceLimit(const Player *from, const Card *) const
+	{
+		if (from->hasSkill(this) && from->getHandcardNum() <= from->getLostHp())
+			return 999;
+		return 0;
+	}
+
+	virtual int getExtraTargetNum(const Player *from, const Card *) const
+	{
+		if (from->hasSkill(this))
+			return from->getLostHp();
+		return 0;
+	}
+};
+```
+
+[点击此处返回第二节|../PackageTutorial/TMS-ARS.tmd#修饰技]

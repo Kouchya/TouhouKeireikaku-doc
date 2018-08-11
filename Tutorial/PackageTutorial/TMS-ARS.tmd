@@ -1,0 +1,146 @@
+# 二、简单技能编写（续）
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+^ 引言
+
+[上一节|PS-DS-MCS.tmd]中介绍的禁止技、距离技和手牌上限技可以说是东方启灵阁中编写水平最为基础的技能类型。本节中，我们将继续介绍两种同样基础的技能类型。
+
+>r ViewAsSkill：视为技，能够将实体牌转化为其他牌（包括`SkillCard`）
+ZeroCardViewAsSkill：零牌视为技，视为技的子类
+OneCardViewAsSkill：单牌视为技，视为技的子类
+FilterSkill：锁定视为技，强制转化实体牌的内容
+TriggerSkill：触发技，满足一定条件时询问或锁定发动
+*MasochismSkill：卖血技，触发技以`Damaged`为事件的子类*
+*PhaseChangeSkill：阶段转换技，触发技以`EventPhaseChanging`为事件的子类*
+*DrawCardsSkill：摸牌技，触发技的子类，控制摸牌阶段摸牌数量*
+*GameStartSkill：游戏开始技，触发技以`GameStart`为事件的子类*
+【已完成】ProhibitSkill：禁止技，使特定角色不能使用特定牌指定特定角色为目标
+【已完成】DistanceSkill：距离技，改变特定角色之间距离计算
+【已完成】MaxCardsSkill：上限技，改变手牌上限
+**TargetModSkill：修饰技，改变使用特定实体牌可指定的目标数、距离限制等**
+**AttackRangeSkill：攻击范围技，改变攻击范围**
+*SlashNoDistanceLimitSkill：无限范围技，取消使用【杀】的距离限制*
+InvaliditySkill：无效技，使特定技能无效
+*FakeMoveSkill：临时移动技，一些特定技能需要分步移动牌，此类技能保证分步移动全程能够等效于一步移动（在触发一些触发技时表现为一步移动的效果）*
+
+由于mash的技能已经有两个了，出于平衡性考虑，我们再额外创造一个新角色，原型为Fate系列的罗宾汉：
+
+```cpp
+General *robin = new General(this, "robin", "archer", 4);
+```
+
+^ 修饰技
+
+我们给罗宾汉一个技能：
+
+>g 【杉弓】你使用【杀】可以额外指定X名目标。若你的手牌数不大于X，你使用【杀】无距离限制且不消耗符卡。(X为你的已损失体力值。)
+
+这个技能看上去涉及特别多的部分，但归根结底都是影响使用牌（本例中仅为【杀】）时的各项参数。这样的效果可以被归入一个技能中，这类技能称为**修饰技**，其抽象类为`TargetModSkill`。
+
+`TargetModSkill`的构造函数需要传入技能名QString为参数：
+
+```cpp
+class Shangong : public TargetModSkill
+{
+
+public:
+	Shangong() : TargetModSkill("shangong")
+	{
+	}
+
+	// TODO: methods...
+};
+```
+
+`TargetModSkill`有四个成员函数：
+
+? virtual QString getPattern() **const**;
+
+- 返回一个QString，为该技能影响的牌的样式。
+
+? virtual bool noLimit(**const** Player \**from*, **const** Card \**card*) **const**;
+
+- 判断*from*使用*card*是否不消耗符卡。鉴于东方启灵阁目前的规则，该项只对【杀】有效。
+
+? virtual int getDistanceLimit(**const** Player \**from*, **const** Card \**card*) **const**;
+
+- 返回一个整数，表示*from*使用*card*时可以指定额外多少距离内的角色为目标。返回大于等于999的整数表示无距离限制。
+
+? virtual int getExtraTargetNum(**const** Player \**from*, **const** Card \**card*) **const**;
+
+- 返回一个整数，表示*from*使用*card*时可以额外指定多少目标。返回大于等于999的整数表示无目标数限制。
+
+一个修饰技真正起作用的部分是后三个方法：`noLimit`、`getDistanceLimit`和`getExtraTargetNum`。一般来说并非三个方法中的每个都要用到，无用的方法可以缺省，这些方法会自动返回适当的缺省值使其相当于默认的效果（比如，额外目标数为0，使用【杀】需要消耗符卡，等等）。可以看到，“杉弓”这个技能需要用到所有这三个方法：后半部分【杀】不消耗符卡对应`noLimit`，后半部分【杀】无距离限制对应`getDistanceLimit`，前半部分【杀】的额外目标对应`getExtraTargetNum`。
+
+我们还需要知道的就是技能描述中某些效果的API。整理一下发现，这个技能中用上的待查询API的效果只有已损失体力值计算。查阅[手册|../CodeManual/Player.tmd]知道它对应的API是： 
+
+? int Player::getLostHp() **const**
+
+其意义及用法参见文档，这里不再赘述。这个修饰技的三个方法代码应当如下：
+
+```cpp
+virtual bool noLimit(const Player *from, const Card *card) const
+{
+	return from->hasSkill(this) && card->isKindOf("Slash") && from->getHandcardNum() <= from->getLostHp();
+}
+
+virtual int getDistanceLimit(const Player *from, const Card *card) const
+{
+	if (from->hasSkill(this) && card->isKindOf("Slash") && from->getHandcardNum() <= from->getLostHp())
+		return 999;
+	return 0;
+}
+
+virtual int getExtraTargetNum(const Player *from, const Card *card) const
+{
+	if (from->hasSkill(this) && card->isKindOf("Slash"))
+		return from->getLostHp();
+	return 0;
+}
+```
+
+这就完成了“杉弓”的代码。完整代码[点击这里查看|../CodeExample/shangong.tmd#代码（未指定pattern）]。
+
+另一方面，不难注意到“杉弓”的全部效果仅对【杀】有效。在这种情况下，`TargetModSkill`提供了一个叫做`pattern`的QString类型属性，可以在某个修饰技的构造函数内部指定其值。`pattern`属性的值是一个模式，其规则详见文档中卡牌信息一节的[模式|../CodeManual/CardContent.tmd#模式]段落。一经构造函数内部指定，则三个方法全部默认附带了判断*card*与`pattern`匹配的条件。此时三个方法的*card*参数可以不传入（但按C++语法，相应位置参数的类型声明仍须保留），方法内部也无需保留与*card*相关的条件判断，从而大幅度简化了代码。
+
+指定了pattern的“杉弓”完整代码[点击这里查看|../CodeExample/shangong.tmd#代码（指定pattern）]。
+
+^ 攻击范围技
+
+我们再赋予robin第二个技能：
+
+>g 【无貌】**锁定技，**场上所有未受伤角色攻击范围视为1。
+
+这个技能的特殊之处在于，它的效果中技能持有者不再处于特殊地位，因此我们的代码中将会缺少`hasSkill(this)`这个条件。另一方面，它是一个直接无视规则修改攻击范围的技能，因此被归类为**攻击范围技**，抽象类为`AttackRangeSkill`。
+
+攻击范围技与上限技比较类似，除了构造函数相似以外，攻击范围技也有两个互斥的方法`getExtra`和`getFixed`，其意义与上限技相仿。这里我们要用到的显然是`getFixed`。
+
+不同的是，攻击范围技的`getExtra`和`getFixed`方法不仅需要一个`Player`指针*target*作为参数，还需要一个布尔值*include_weapon*，即是否考虑武器的攻击范围。对于多数技能（比如“无貌”），无论是否考虑武器的攻击范围，效果都不会变，所以可以留下该参数的类型而不声明该参数。
+
+这里我们还需要用到一个API，即判断一个角色是否受伤的方法`Player::isWound()`。该API返回布尔值，为`true`表明该角色已受伤。类比上限技的实现方式，无需多言，我们已经可以写出“无貌”的代码：
+
+```cpp
+class Wumao : public AttackRangeSkill
+{
+
+public:
+	Wumao() : AttackRangeSkill("wumao")
+	{
+	}
+
+	virtual int getFixed(const Player *target, bool) const
+	{
+		if (!target->isWound())
+			return 1;
+		return -1;
+	}
+};
+```
+
+你也可以点击[这里|../CodeExample/wumao.tmd]查看这段代码。
+
+我们通过两节的时间学习了所有技能类型中最简单的几种。由于其简易性，我们每一节都完成了数种技能类型的学习。然而，这些技能类型并不常见，充其量只是练练手的程度罢了。从下一节开始，我们将接触各种真正常见、也真正复杂的技能类型，它们至少构成了东方启灵阁全部技能的90%，并且有着千变万化的形式和效用。为此，放慢一些速度是有必要的。我们也会在接下来的每一节最后留下一些练习，并以链接的方式提供它们的标准程序。
+
+=						=
+[上一节|PS-DS-MCS.tmd]	[下一节|VS-OCV.tmd]

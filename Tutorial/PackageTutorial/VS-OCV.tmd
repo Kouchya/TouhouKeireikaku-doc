@@ -1,0 +1,282 @@
+# 三、替换牌的效果
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+^ 引言
+
+[上一节|TMS-ARS.tmd]我们结束了全部简单类型技能代码的学习。从本节起，技能代码的复杂度会略有增加。然而从本节开始我们要介绍的几种技能类型才真正占据了东方启灵阁的绝大部分。可以说，真正意义上的技能代码学习，是从这一节开始的。
+
+接下来的若干章节，我们将会把注意力放在一类特定效果的技能上，这类技能的特点是会将玩家的实体游戏牌（手牌、装备区甚至其他地方的牌）替换成指定的牌的效果。替换的牌可能是另一种游戏牌，甚至也可能是抽象的（比如后面的章节将介绍的技能卡）。鉴于这一类技能的灵活性，我们会花不少精力进行介绍。
+
+>r **ViewAsSkill：视为技，能够将实体牌转化为其他牌（包括`SkillCard`）**
+**ZeroCardViewAsSkill：零牌视为技，视为技的子类**
+**OneCardViewAsSkill：单牌视为技，视为技的子类**
+FilterSkill：锁定视为技，强制转化实体牌的内容
+TriggerSkill：触发技，满足一定条件时询问或锁定发动
+*MasochismSkill：卖血技，触发技以`Damaged`为事件的子类*
+*PhaseChangeSkill：阶段转换技，触发技以`EventPhaseChanging`为事件的子类*
+*DrawCardsSkill：摸牌技，触发技的子类，控制摸牌阶段摸牌数量*
+*GameStartSkill：游戏开始技，触发技以`GameStart`为事件的子类*
+【已完成】ProhibitSkill：禁止技，使特定角色不能使用特定牌指定特定角色为目标
+【已完成】DistanceSkill：距离技，改变特定角色之间距离计算
+【已完成】MaxCardsSkill：上限技，改变手牌上限
+【已完成】TargetModSkill：修饰技，改变使用特定实体牌可指定的目标数、距离限制等
+【已完成】AttackRangeSkill：攻击范围技，改变攻击范围
+*SlashNoDistanceLimitSkill：无限范围技，取消使用【杀】的距离限制*
+InvaliditySkill：无效技，使特定技能无效
+*FakeMoveSkill：临时移动技，一些特定技能需要分步移动牌，此类技能保证分步移动全程能够等效于一步移动（在触发一些触发技时表现为一步移动的效果）*
+
+本节我们创建一个新角色：Fate系列中的Caster阿维斯布隆。
+
+```cpp
+General *avicebron = new General(this, "avicebron", "caster", 3);
+```
+
+^ 视为技
+
+我们为avicebron添加一个技能：
+
+>g 【魔偶】出牌阶段，你可以将两张黑色手牌当作【人形操纵】使用。
+
+这个技能非常明显地将若干牌转化为一种指定牌的效果。这样一类技能称为**视为技**，抽象类为`ViewAsSkill`。所谓“视为”，就是将原本一些满足特定条件的牌强行视为指定的牌名。可以是很多张牌合起来整体视为一张牌，比如将两张任意的黑色手牌整体视为一张【人形操纵】。甚至我们会看到，在之后的章节中，存在将“零张牌”视为一张指定的牌的例子。但在一次发动中，无论多少牌合起来，都只能整体视为一张牌，这从某种意义上说是由东方启灵阁的单线程结算规则决定的。
+
+那么我们来研究一下`ViewAsSkill`类的结构。`ViewAsSkill`构造函数的参数仍然只有一个技能名QString，但其子类（也就是某个具体的视为技）的构造函数内部可能需要声明一个属性：`response_pattern`。不过，本节的内容中我们用不上这个属性，因此构造函数内部相当于无需做任何事情。这使得我们可以先写下如下框架：
+
+```cpp
+class Moou : public ViewAsSkill
+{
+
+public:
+	Moou() : ViewAsSkill("moou")
+	{
+	}
+
+	// TODO: methods...
+};
+```
+
+在上手研究`ViewAsSkill`类的各个方法前，我们先整理一下设计技能代码的思路：“魔偶”这个技能，在将一些牌转化成指定的牌的过程中，有哪些需要着重考虑的技能元素？显然，我们关心的无外乎就是“被转化的若干牌是什么样的”以及“转化成的那张牌是什么样的”两部分。在`ViewAsSkill`的众多方法中，正好有两个方法对应我们关心的问题，分别是`viewFilter`和`viewAs`。它们的用法如下：
+
+? virtual bool viewFilter(**const** QList&lt;**const** Card \*\> &*selected*, **const** Card \**to_select*) **const**;
+
+参数解释：
+- *selected*：用户已经选择了的牌，其类型是一个元素为`Card`对象的QList容器。
+- *to_select*：用户的某张尚未选择的牌，当`viewFilter`被调用时，系统正在判断*to_select*是否能够被选择。如果结论是肯定的，那么`viewFilter`将返回`true`。
+
+这里有必要阐明*selected*参数存在的必要性。游戏中发动视为技的操作是：点击技能图标，依次点选要被转化的牌，选择转化成的牌的目标（如果有的话），再点击“确定”。在第二步中，某张牌是否可以被点选往往受到已经被点选了的牌的影响，制约因素一般是已选择的牌的数量，但也可能是已选择的牌的信息（比如要求所有选择的牌花色相同，等等）。
+
+? virtual **const** Card \*viewAs(**const** QList&lt;**const** Card \*\> &*cards*) **const**;
+
+参数解释：
+- *cards*：用户最终选择的所有牌，其类型是一个元素为`Card`对象的QList容器。
+
+`viewAs`方法会将*cards*容器中的所有`Card`对象（也就是所有牌）作为全部要被转化的牌处理，并最终返回它们整体视为的那张牌。
+
+我们一个一个地进行研究。`viewFilter`无外乎就是要我们判断什么样的牌可以被选中，并且这个判断条件是依赖已选中的牌*selected*的，那么事实上我们要控制这么几个条件：
+1. 若已选两张牌，那么无论*to_select*是什么牌都返回`false`；
+2. 若已选的牌数不足两张，那么要求*to_select*是黑色的，并且是手牌（这点很重要，因为描述中明确排除了使用装备区内的牌的可能性），否则返回`false`。
+
+代码思路有了，接下来就是具体的API了。首先，判断已选的牌数事实上就是判断QList容器*selected*的占用大小，这使用QList自带的`length()`方法完成。其次，通过查阅手册中的[卡牌部分|../CodeManual/Card.tmd]得知，可以使用`Card::isBlack()`这一API判断某张牌是否为黑色。从`Card`对象角度判断一张牌是否为手牌不那么容易，好在`viewFilter`方法本身只会遍历玩家的手牌和装备区内的每一张牌作为*to_select*，因此我们只要判断*to_select*是否**不为装备区内的牌**，而这可以通过`Card::isEquipped()`这一API判断。
+
+现在我们可以写出`viewFilter`部分的代码：
+
+```cpp
+virtual bool viewFilter(const QList<const Card *> &selected, const Card *to_select) const
+{
+	return selected.length() < 2 && to_select->isBlack() && !to_select->isEquipped();
+}
+```
+
+`viewAs`的部分比较麻烦。为了能很好地理解接下来的`viewAs`部分的代码实现，我们有必要对`Card`对象的一些性质作出阐释。
+
+一个很重要的认识是，一个`Card`对象并不绝对地与一张实体牌等同。`Card`对象表明了一张牌的“实际身份”，即当它产生作用时，它执行的是什么牌的效果。如果一个`Card`对象是由一些其他的牌转化而来的，那么它就与实体牌没有内容上的关联。比如视为技“魔偶”的例子中，`viewAs`最终返回的`Card`对象应该是一个`SavageAssault`对象（各种牌对应的类参见手册中的[卡牌信息|../CodeManual/CardContent.tmd]部分），而当我们将这张【人形操纵】使用出去时，我们真正“丢出去”的实体牌并非【人形操纵】，而是我们点选的那两张内容随意的黑色手牌。这就是`Card`对象与组成它的实体牌内容无关的原理。这些实体牌，按东方启灵阁的术语，叫作这个`Card`对象的（或这张牌的）子卡，英文为subcard。反过来说，一张牌的subcard(s)就是玩家使用这张牌时“丢出去”的那些实体牌。在“魔偶”的例子中，选中的那两张黑色手牌就是玩家最终使用的那张【人形操纵】的subcards。这里【人形操纵】并不是真正的实体牌，因此需要凭空创建一个抽象的`SavageAssault`实例，然后把实体牌作为子卡添加给这个实例。
+
+此外，根据东方启灵阁游戏面板中显示的提示信息的格式，玩家使用视为技转化了牌时，会提示玩家发动了何种技能，将哪些牌转化成了何种牌使用。为此，我们需要在`viewAs`中告诉程序，这张牌是在什么技能下被转化出来使用的。这些准备工作完成后，我们就可以返回转化后的牌了。
+
+总结一下`viewAs`的思路：我们实际需要做的事非常少，就是凭空创建一个`SavageAssault`实例，赋予其选中的牌，也就是*cards*，作为它的子卡，再通过某种方式让程序知道它将由于“魔偶”这个技能的效果而被使用，最后返回这个实例。这里我们需要用到的API是：
+
+? void Card::addSubcards(**const** QList&lt;**const** Card \*\> &*cards*) **const**;
+
+参数解释：
+- *cards*：待添加为某张牌牌的子卡的那些牌，其类型为一个元素为`Card`对象的QList容器。
+
+这个API作为某个`Card`对象*card*的方法被调用时，会将*cards*中储存的每一个`Card`对象添加为*card*的子卡。
+
+? void Card::setSkillName(**const** QString *skill_name*) **const**;
+
+参数解释：
+- *skill_name*：技能名，一个QString串。
+
+这个API作为某个`Card`对象*card*的方法被调用时，会将名为*skill_name*的技能视作因其效果而使*card*得以被使用出的那个技能，或者说，在游戏面板的提示信息中，会显示“玩家发动了*skill_name*使用了*card*”。
+
+还有一点就是在创建某个游戏牌类的实例时，其构造函数需要两个参数：花色枚举值和点数。这里我们需要让其花色和点数根据子卡的信息待定，查询[手册|../CodeManual/CardContent.tmd]知这种情况下的花色枚举值和点数应分别写成`Card::SuitToBeDecided`和`-1`。
+
+另外，`viewAs`内部还需要做一件事，就是判断子卡数目是否与我们预想的一致。因为`viewFilter`只能保证我们选择了不大于两张的满足条件的牌，但不能保证这个数目正好是两张。处理方法是在`viewAs`的开头进行判断：如果子卡数目不正确，则返回`NULL`。在游戏界面中，这将体现为“选中的牌数不符合要求则无法点击‘确定’按钮”。
+
+有了以上信息，我们便能写出`viewAs`的部分：
+
+```cpp
+virtual const Card *viewAs(const QList<const Card *> &cards) const
+{
+	if (cards.length() != 2)
+		return NULL;
+
+	SavageAssault *card = new SavageAssault(Card::SuitToBeDecided, -1);
+	card->addSubcards(cards);
+	card->setSkillName("moou");
+	return card;
+}
+```
+
+有时候我们在设计技能时，可能会中途决定改掉技能名。这样一来，上述代码中`setSkillName`的参数也要跟着改变。因此，为了避免在这种情况下无意义地增加工作量，我们采用`Skill`对象的`objectName()`方法来动态地获取技能名（这其实是一个QObject自带的方法，进一步的讨论将涉及QObject的`object_name`参数及其工作原理，此处不再赘述）。这样一来，上述代码的第五行便可以改写成：
+
+```cpp
+card->setSkillName(objectName());
+```
+
+注意这里`objectName()`方法并没有指定所属对象，是因为我们正在`Moou`这个类里工作，而该方法正是属于`Moou`类中的`this`对象。
+
+现在我们已经完成了“魔偶”技能代码的主要部分，但还有一个小小的遗漏，那就是“出牌阶段”这个条件还没有体现出来。在`ViewAsSkill`的诸多方法中，有一个`isEnabledAtPlay`方法专门针对这个问题，其用法如下：
+
+? virtual bool isEnabledAtPlay(**const** Player \**player*) **const**;
+
+参数解释：
+- *player*：技能的拥有者，一个`Player`对象。这其实没什么好解释的。
+
+该方法返回一个布尔值，表示在*player*的出牌阶段中某一个能够自由行动的时刻，*player*是否能够点击该技能的图标（即是否能够发动该技能）。
+
+尽管技能描述中没有指明出牌阶段内使用该技能的任何限制，但为了更好的游戏体验，我们希望在玩家手牌数小于2时，系统能够自动禁止玩家点击技能图标。之所以不判断玩家是否要有两张以上黑色手牌，是因为手牌数是一个所有人可见的属性，但手牌花色只有玩家自己可见。尽管能否点击技能图标也是只有玩家自己可见的，但从设计原则以及简易性上来说，我们更倾向于以那些所有人都可见的条件作为能否点按图标的限制条件。
+
+留心一下我们一般把`viewAs`这个返回最终结果的方法放在最后写，把`viewFilter`放在最前面写（紧接在构造函数后面），把`isEnabledAtPlay`放在二者中间。也有把`viewFilter`和`isEnabledAtPlay`的位置交换过来的方式，取决于个人书写习惯。由于先前已经接触过统计手牌的API，我们已经可以写出`isEnabledAtPlay`部分的代码：
+
+```cpp
+virtual bool isEnabledAtPlay(const Player *player) const
+{
+	return player->getHandcardNum() >= 2;
+}
+```
+
+至此，“魔偶”的技能代码才算全部完成。完整的代码[点击这里查看|../CodeExample/moou.tmd]。无论从原理还是代码量上来看，它都比我们前两节学习的技能类型要复杂得多，因此有必要给予读者一些消化的时间。接下来两个段落，我们将介绍视为技的一个常见且简单的子类，并利用此机会进一步加深读者对视为技的印象。
+
+^ 单牌视为技
+
+顾名思义，单牌视为技就是只有一张子卡的视为技。在东方启灵阁中，这样的视为技可以用`OneCardViewAsSkill`这一`ViewAsSkill`的子类方便地编写。
+
+我们还是举一个具体的例子。给avicebron如下技能：
+
+>g 【数秘】出牌阶段，你可以将一张红桃2~9的手牌当作【读心术】使用。
+
+显然这是一个视为技，并且其subcard数量为1。现在我们来用`OneCardViewAsSkill`完成这个技能。
+
+单牌视为技同样继承了父类的`viewFilter`方法，但其多了一种用法：
+
+? virtual bool viewFilter(**const** Card \**to_select*) **const**;
+
+其中*to_select*的意义和`ViewAsSkill::viewFilter`的*to_select*参数相同。这是情理之中的，因为对于单牌视为技来说，一旦有牌已经选中，那么`viewFilter`无论如何都只能返回`false`，因此*selected*参数将没有存在的意义（东方启灵阁程序在解析单牌视为技时，会自动进行类似普通的视为技中`selected.length() < 1`这样的判断）。于是我们只需关心对*to_select*的筛选。
+
+我们看到，“数秘”对*to_select*的花色和点数有要求。此外，还要求*to_select*必须是手牌，这一点我们在[上一段落|#视为技]已经介绍过判断方法。从[手册|../CodeManual/CardContent.tmd#花色·点数]中我们看到花色有两种表示方法：英文名称和枚举类型。查阅手册的[卡牌部分|../CodeManual/Card.tmd]，我们找到了获取一张牌花色的这两种表示方式的API：
+
+? QString Card::getSuitString() **const**;
+
+这是获取花色英文名的方法。以及
+
+? Card::Suit Card::getSuit() **const**;
+
+这是获取花色枚举类型的方法。这两者我们都可以使用，本质上没有区别，不过为了写代码方便，我们通常倾向于使用前者。
+
+获取一张牌点数的API也非常简单：
+
+? int Card::getNumber() **const**;
+
+从而`viewFilter`部分的代码应为：
+
+```cpp
+virtual bool viewFilter(const Card *to_select) const
+{
+	return to_select->getSuitString() == "heart" && to_select->getNumber() >= 2 && to_select->getNumber() <= 9 && !to_select->isEquipped();
+}
+```
+
+免去*selected*自然是单牌视为技相较视为技简化的地方，但仅仅如此还不足以体现单牌视为技作为一个子类分离出来的优越性。事实上，`OneCardViewAsSkill`有一个`filter_pattern`属性，它几乎可以完全取代`viewFilter`的功能，所需要的只是构造函数内部的一行赋值代码。
+
+`filter_pattern`是一个QString，它采用模式（ExpPattern）的格式记录这个单牌视为技中子卡的信息要求。模式的使用方式详见手册的[卡牌信息|../CodeManual/CardContent.tmd#模式]部分。设置了这一属性，我们就可以把目前为止的“数秘”代码大幅度简化：
+
+```cpp
+class Shumi : public OneCardViewAsSkill
+{
+
+public:
+	Shumi() : OneCardViewAsSkill("shumi")
+	{
+		filter_pattern = ".|heart|2~9|hand";
+	}
+
+	// no need to write viewFilter
+
+	// TODO: methods...
+};
+```
+
+接着是`isEnabledAtPlay`的设置。`OneCardViewAsSkill`的`isEnabledAtPlay`方法毫无更改地继承自`ViewAsSkill`。当然对于“数秘”这个单牌视为技来说，阻止玩家点按技能按钮的手牌数阈值从2变成了1。换言之，玩家没有手牌时，`isEnabledAtPlay`才返回`false`。我们固然可以用`getHandcardNum`方法获得玩家的手牌数，但东方启灵阁为我们提供了一个专门判断玩家是否没有手牌的API：
+
+? bool Player::isKongcheng() **const**;
+
+这里的`kongcheng`取自三国杀诸葛亮的技能“空城”。当玩家没有手牌时，调用其`isKongcheng`方法返回`true`。因此`isEnabledAtPlay`可以这么写：
+
+```cpp
+virtual bool isEnabledAtPlay(const Player *player) const
+{
+	return !player->isKongcheng();
+}
+```
+
+最后，我们设置该视为技转化成的牌`viewAs`。与`ViewAsSkill`不同，`OneCardViewAsSkill::viewAs`传入的参数是一个`Card`对象：
+
+? virtual **const** Card \*viewAs(**const** Card \**originalCard*) **const**;
+
+类比`ViewAsSkill::viewAs`的参数*cards*，不用说我们也能知道，这里的*originalCard*是那张被转化的子卡。可以想见，我们也无需像`ViewAsSkill`那样，专门判断子卡数目是否正确。
+
+由于传入的参数不再是一个元素为`Card`对象的QList，给视为的【读心术】添加子卡时，我们需要用到另一个API：
+
+? void Card::addSubcard(**const** Card \**card*);
+
+这个API的效果是**单张单张地**向某张牌添加子卡，而不是将若干张牌打包成一个QList作为子卡添加进去。
+
+现在，`viewAs`的代码已经可以写出：
+
+```cpp
+virtual const Card *viewAs(const Card *originalCard) const
+{
+	MindReading *card = new MindReading(Card::SuitToBeDecided, -1);
+	card->addSubcard(originalCard);
+	card->setSkillName(objectName());
+	return card;
+}
+```
+
+至此我们完成了“数秘”这个单牌视为技的代码。完整的技能代码[点击这里查看|../CodeExample/shumi.tmd]。总而言之，单牌视为技与普通视为技大同小异，一个最明显的简化之处就是它可以通过构造函数内给`filter_pattern`属性赋值来省略掉整个`viewFilter`方法。
+
+^ 练习
+
+--别紧张，这才第一次练习，还不至于特别难的--
+
+添加角色karna（Fate系列：迦尔纳），势力为"lancer"，体力上限4，并赋予其以下两个技能：
+
+>g 【梵神】出牌阶段，你可以将一张方片手牌当作【火杀】使用。你使用【火杀】不消耗符卡。
+
+>g 【覆刃】出牌阶段，你可以将所有手牌（至少一张）当作【弹幕】使用。
+
+要求：【梵神】的第一部分采用`OneCardViewAsSkill`完成。
+
+提示：
+1. 【梵神】代码需要用到先前章节介绍的技能类型以及关联技能的概念。
+2. 在视为技的各个方法中，使用`Self`指针指代技能的拥有者（类型为`Player`指针）。
+3. 视为技的`viewAs`部分在调用时，子卡还没有被“丢出去”。
+4. 判断一个QList是否为空，可以用其`isEmpty`方法（无参数，为空则返回`true`）。
+
+答案：
+- [【梵神】代码|../CodeExample/fanshen.tmd]
+- [【覆刃】代码|../CodeExample/furen.tmd]
+
+=						=
+[上一节|TMS-ARS.tmd]		下一节

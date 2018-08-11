@@ -1,0 +1,26 @@
+# 固守（距离技部分）
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class Gushou : public DistanceSkill
+{
+
+public:
+	Gushou() : DistanceSkill("gushou")
+	{
+	}
+
+	virtual int getCorrect(const Player *from, const Player *to) const
+	{
+		if (from != to && to->hasSkill(this) && from->getHandcardNum() >= to->getHandcardNum())
+			return 1;
+		else
+			return 0;
+	}
+};
+```
+
+[点击此处返回第一节|../PackageTutorial/PS-DS-MCS.tmd#距离技]

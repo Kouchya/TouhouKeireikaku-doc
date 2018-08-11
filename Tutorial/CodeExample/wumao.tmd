@@ -1,0 +1,25 @@
+# 无貌
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class Wumao : public AttackRangeSkill
+{
+
+public:
+	Wumao() : AttackRangeSkill("wumao")
+	{
+	}
+
+	virtual int getFixed(const Player *target, bool) const
+	{
+		if (!target->isWound())
+			return 1;
+		return -1;
+	}
+};
+```
+
+[点击此处返回第二节|../PackageTutorial/TMS-ARS.tmd#攻击范围技]

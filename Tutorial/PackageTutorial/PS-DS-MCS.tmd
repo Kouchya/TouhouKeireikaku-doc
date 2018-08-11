@@ -1,0 +1,261 @@
+# 一、技能类型·简单技能编写
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+^ 引言
+
+[上一节|./Initial.tmd]我们介绍了如何创建一个扩展包，并向扩展包内添加武将。我们在`Tutor`包中确实添加了武将mash，但目前mash尚无技能。接下来我们要做的就是编写一些技能让mash拥有。
+
+然而，东方启灵阁中的技能效果千变万化，我们不可能在一节的时间内就列出各种技能的实现方式。所幸的是，东方启灵阁（沿用太阳神三国杀的方式）对各种技能做了一个分类，使我们可以在设计各式不同的技能时对号入座，套用某个技能类型的模板（即某个`class`）完成开发。在src/core/skill.h中，或者在手册的[技能类型|../CodeManual/SkillClass.tmd]部分，可以找到所有的技能分类：
+
+>r ViewAsSkill：视为技，能够将实体牌转化为其他牌（包括`SkillCard`）
+ZeroCardViewAsSkill：零牌视为技，视为技的子类
+OneCardViewAsSkill：单牌视为技，视为技的子类
+FilterSkill：锁定视为技，强制转化实体牌的内容
+TriggerSkill：触发技，满足一定条件时询问或锁定发动
+--ScenarioRule：小型场景规则，触发技的子类，制定了小型场景中满足特定条件时强制进行的动作--
+*MasochismSkill：卖血技，触发技以`Damaged`为事件的子类*
+*PhaseChangeSkill：阶段转换技，触发技以`EventPhaseChanging`为事件的子类*
+*DrawCardsSkill：摸牌技，触发技的子类，控制摸牌阶段摸牌数量*
+*GameStartSkill：游戏开始技，触发技以`GameStart`为事件的子类*
+**ProhibitSkill：禁止技，使特定角色不能使用特定牌指定特定角色为目标**
+**DistanceSkill：距离技，改变特定角色之间距离计算**
+**MaxCardsSkill：上限技，改变手牌上限**
+TargetModSkill：修饰技，改变使用特定实体牌可指定的目标数、距离限制等
+AttackRangeSkill：攻击范围技，改变攻击范围
+*SlashNoDistanceLimitSkill：无限范围技，取消使用【杀】的距离限制*
+InvaliditySkill：无效技，使特定技能无效
+*FakeMoveSkill：临时移动技，一些特定技能需要分步移动牌，此类技能保证分步移动全程能够等效于一步移动（在触发一些触发技时表现为一步移动的效果）*
+--EquipSkill：装备技，赋予装备牌的技能--
+--WeaponSkill：武器技，装备技的子类--
+--ArmorSkill：防具技，装备技的子类--
+--TreasureSkill：宝物技，装备技的子类--
+
+上述技能类型中，打了删除线的是本教程不涉及的技能类型，今后列出此表时，这些技能类型也将不再出现。斜体部分是进阶技能教程的内容，它们要么可以通过更基本的技能类型实现，要么基本不会用到或不推荐使用。它们将放在靠后的位置介绍，读者可以酌情跳过。粗体部分是本节将介绍的技能类型。其余部分是在本节之前已介绍过的或以后将会介绍的比较基本的技能类型。
+
+^ 禁止技
+
+**禁止技**的功能是使满足特定条件的角色使用某些牌时，不能指定某些角色为目标。东方启灵阁中米斯蒂娅的“夜盲”就是一个典型的禁止技。一个技能如果被分类为禁止技，那么它是`ProhibitSkill`这个抽象类的一个子类。禁止技的构造函数必须无参数且内部可以不做任何事，但其父类`ProhibitSkill`必须给定QString类型的技能名作为构造函数的参数。
+
+禁止技有一个成员函数`isProhibited`，其定义方法如下：
+
+? virtual bool isProhibited(**const** Player \**from*, **const** Player \**to*, **const** Card \**card*, **const** QList&lt;**const** Player \*\> &*others* = QList&lt;**const** Player \*\>()) **const** = 0;
+
+参数解释：
+- *from*：牌的使用者，类型是`Player`指针。
+- *to*：牌的某一个目标，类型是`Player`指针。像【弹幕】这样的AOE牌，禁止技会一个一个地判断是否能指定该角色为目标。
+- *card*：使用的牌，类型是`Card`指针。
+- *others*：在考虑对*to*的作用时已经成功指定的所有目标，它是一个元素为`Player`指针的QList。缺省值是一个空QList。
+
+这里关于一些术语给出说明。一个`Player`对象指针（不引起歧义的情况下，不妨简称为一个`Player`对象，其他对象类型同理）指代游戏中的某个玩家。注意它不应与玩家所操控的具体武将等同，因为有些场合下玩家使用的武将会改变，但隶属于玩家本身的属性并不随之改变（比如，手牌数，体力值，三国杀国战中变更副将后的体力上限，等等）。一个`Card`对象指代游戏中的某张牌，它可能是实体的、抽象使用的（如八尺镜判定成功时视为使用的【闪】）甚至是技能卡（详见视为技相关章节）。QList则是Qt自带的一种泛类型容器，可以很方便地进行存储、指定修改、索引、增删甚至更高级的操作。
+
+`isProhibited`函数返回一个布尔值，其中返回`true`表示*from*使用*card*已经指定了*others*这些目标的情况下，不能指定*to*为目标。函数内部应当对*from*、*to*、*card*、*others*满足的条件进行适当的判断并分类返回`true`或`false`。
+
+比如说，我们给mash添加一个技能“案楯”：
+
+>g 【案楯】**锁定技，**体力值大于你的角色使用【杀】不能指定你为目标。
+
+按照东方启灵阁代码惯例，我们用**技能拼音**表示技能名，所以这个技能的名字就是andun。为了方便起见，我们把这个技能的类命名为**首字母大写的技能名**，也就是`Andun`。这个类与其构造函数的写法应当是如下形式：
+
+```cpp
+class Andun : public ProhibitSkill
+{
+
+public:
+	Andun() : ProhibitSkill("andun")
+	{
+	}
+
+	// TODO: isProhibited
+};
+```
+
+接下来就是最关键的`isProhibited`的实现。在“案楯”这个例子当中，使得`isProhibited`返回`true`的情况显然只可能是：*to*是“案楯”的拥有者（一般情况下可以认为就是mash，但当然可能有例外，而且严谨的程序思维告诉我们，判断*to*是否有“案楯”显然比判断*to*是否名叫mash更合理），*card*是【杀】，*from*的体力值大于*to*的体力值。这个条件和*others*无关，直接缺省即可。
+
+在写出`isProhibited`的代码前，我们还需要解决几个问题，比如如何判断一个`Card`对象是不是【杀】，如何获得一个`Player`对象的体力值，等等。这些当然都是一些细节问题，并且东方启灵阁已经提供了丰富的API来实现它们。一些常用的API已经[在此列出|../CodeManual/overview.tmd#API]，这里我们需要用到的是如下几个API：
+
+? bool Player::hasSkill(**const** Skill \**skill*, bool *include_lose* = false) **const**;
+
+- 判断某个玩家是否拥有技能*skill*（类型为一个`Skill`指针，事实上各种技能类型都是`Skill`类的子类）。第二个参数我们暂时用不到。
+
+? bool Card::isKindOf(**const** char \**cardType*) **const**;
+
+- 判断某张牌是否为这样一个类的实例，这个类继承自或者就是名为*cardType*（类型为一个字符串）的类。
+- *cardType*一般是牌的类名或牌的类别名。关于牌的类和类别在东方启灵阁中的表示，可以参见[手册相关部分|../CodeManual/CardContent.tmd]。
+
+? int Player::getHp() **const**;
+
+- 获取某个玩家的现有体力值。
+
+现在我们可以轻易地写出`isProhibited`部分的代码：
+
+```cpp
+virtual bool isProhibited(const Player *from, const Player *to, const Card *card) const
+{
+	return to->hasSkill(this) && card->isKindOf("Slash") && from->getHp() > to->getHp();
+}
+```
+
+这里我们非常方便地使用了`this`指针作为`hasSkill()`方法参数，我们知道这个参数本应为`Skill`对象。这是利用了`Andun`→`ProhibitSkill`→`Skill`这个类继承关系链。
+
+至此，我们完成了“案楯”技能的全部代码。完整代码[点击这里查看|../CodeExample/andun.tmd]。现在我们要做的就是赋予mash这个技能。我们找到创建mash对象的位置，在其下一行写上：
+
+```cpp
+mash->addSkill(new Andun);
+```
+
+这里利用了如下API：
+
+? void General::addSkill(Skill \**skill*);
+
+这样我们只需new一个`Andun`技能类的实例，通过武将对象的`addSkill()`方法添加给mash。可选的API还有：
+
+? void General::addSkill(**const** QString &*skill_name*);
+
+其中*skill_name*是一个QString串，表示要添加的技能的英文名。这从侧面反映出一个事实：东方启灵阁中不同的技能应当有不同的技能名。
+
+^ 距离技
+
+我们再给mash添加一个技能：
+
+>g 【固守】**锁定技，**手牌数不小于你的其他角色与你距离+1；**锁定技**，你的手牌上限+X(X为攻击范围内有你的其他角色数)。
+
+这个技能明显地分为两部分，第一部分是一个操纵距离的效果，第二部分是一个改变手牌上限的效果。显然这两部分隶属于不同的技能类型，因此我们分别处理它们。
+
+操纵距离的技能称为**距离技**，抽象类为`DistanceSkill`。与`ProhibitSkill`一样，`DistanceSkill`的构造函数需要一个技能名QString为参数，且其构造函数内部无须进行任何动作。因此这部分我们可以很快写出：
+
+```cpp
+class Gushou : public DistanceSkill
+{
+
+public:
+	Gushou() : DistanceSkill("gushou")
+	{
+	}
+
+	// TODO: methods...
+};
+```
+
+距离技有一个成员函数：
+
+? virtual int getCorrect(**const** Player \**from*, **const** Player \**to*) **const** = 0;
+
+参数解释：
+- *from*：计算距离的起点角色（触发角色）
+- *to*：计算距离的终点角色（到达角色）
+
+`getCorrect()`的返回值是一个整数，表示额外增加的距离。如果距离减少（比如三国杀中的“马术”），则返回相应的负整数。如果距离不变，则返回0。
+
+查阅[文档|../CodeManual/Player.tmd]，得知获取玩家手牌数的API为`getHandcardNum()`。这样我们就可以写出`getCorrect`部分的代码：
+
+```cpp
+virtual int getCorrect(const Player *from, const Player *to) const
+{
+	if (from != to && to->hasSkill(this) && from->getHandcardNum() >= to->getHandcardNum())
+		return 1;
+	else
+		return 0;
+}
+```
+
+需要格外注意的是不能漏掉`to->hasSkill(this)`这个条件，否则相当于全场的角色都获得“固守”的防御效果了。此外，考虑到自己与自己的距离被锁死为1，`from != to`这个条件可以去掉，不过出于严谨考虑（以及为以后的代码学习养成好习惯），我们在这里选择了加上这个条件。
+
+完整的“固守”距离技部分代码[点击这里查看|../CodeExample/gushou.tmd]。我们最后给mash加上这个技能：
+
+```cpp
+mash->addSkill(new Gushou);
+```
+
+^ 上限技
+
+我们接下来完成“固守”的第二部分。这是一个更改手牌上限的效果，因此归类于**上限技**`MaxCardsSkill`。
+
+`MaxCardsSkill`的构造函数要求与`ProhibitSkill`和`DistanceSkill`完全一致，只需传一个技能名为参数即可。但是需要注意，鉴于不同的技能必须拥有不同的名字，而gushou这个名字已经被上文的距离技占用，因此这个上限技必须换一个名字加以区分。按照习惯，我们在gushou后面加上-mc或-maxcards，表示这是“固守”这个技能的另一部分且为一个上限技。
+
+然而，实际在游戏界面中，我们希望距离技和上限技两个部分以一个技能的方式呈现。如果我们把它们分成两个技能，则武将头像上将有两个图标。解决这一问题的方法是让游戏隐藏掉其中一个技能的图标，这里我们令上限技为被隐藏的那部分（这么做是出于一个习惯，把真正拥有原始技能名的那部分技能视作整个技能的主体部分，然后让游戏只显示主体部分的技能图标；在这里距离技的技能名是原始技能名gushou，因此我们选择显示距离技图标而隐藏上限技图标）。在东方启灵阁中，只需令技能名的第一个字符为#，就可以隐藏该技能的图标。因此，这个上限技的完整技能名应当为`#gushou-mc`或`#gushou-maxcards`。
+
+```cpp
+class GushouMC : public MaxCardsSkill
+{
+
+public:
+	GushouMC() : MaxCardsSkill("#gushou-mc")
+	{
+	}
+
+	// TODO: methods...
+};
+```
+
+注意这种思想在进行技能代码开发时非常重要：即使某个技能在输出上（技能描述、图标显示等）表现为一个技能，实际代码中很有可能需要编写多个技能来实现。像“固守”这样的技能，从描述中便可以直观感受到需要两部分技能来完成，但今后我们会遇到一些技能，它们的拆分性在技能描述上体现得十分隐蔽，这就要求我们有一定的经验和程序思维去进行判断。
+
+`MaxCardsSkill`有两个成员函数：
+
+? virtual int getExtra(**const** Player \**target*) **const**;
+
+参数解释：
+- *target*：待调整手牌上限的角色
+
+`getExtra`返回一个整数，为*target*手牌上限的增量。若手牌上限减少，则返回负整数。若不变，则返回0。
+
+? virtual int getFixed(**const** Player \**target*) **const**;
+
+参数解释：
+- *target*：待调整手牌上限的角色
+
+`getFixed`返回一个整数，为*target*的手牌上限。这个手牌上限值是固定的，不受任何增减效果的影响，包括游戏规则中体力值对手牌上限的影响。返回任一负整数（一般而言，返回-1）表示不固定*target*的手牌上限，即令`getFixed`不对*target*的手牌上限产生影响。
+
+可以看出，上述两个成员函数的效果是相抵触的，用上一个则必定用不上另一个。如果一个`MaxCardsSkill`的`getExtra`和`getFixed`同时有定义，则`getFixed`的效果优先，除非调用`getFixed`时产生了负整数返回值（此时再考虑`getExtra`的效果）。在“固守”的例子中，我们用上的显然是`getExtra`方法。
+
+“固守”第二部分的一个特殊之处在于，手牌上限的增量与满足特定条件的其他角色数有关。这就意味着我们要遍历场上所有其他角色，对每个角色逐一判断是否满足特定条件。查阅手册中[玩家部分|../CodeManual/Player.tmd]知，对一个角色（玩家）*player*而言，获得场上其他存活角色的方法是调用`player->getAliveSiblings()`方法。该方法返回值类型为一个QList&lt;**const** Player \*\>，即元素为`Player`对象的QList容器。
+
+Qt为我们提供了`foreach`手段遍历QList容器：
+
+```cpp
+foreach (item, container) {
+	// TODO deal with each item in the QList container
+}
+```
+
+查询[手册|../CodeManual/Player.tmd]知，判断角色*A*是否在角色*B*的攻击范围内的API是`B->inMyAttackRange(A)`。这样我们就可以完成`getExtra`部分的代码：
+
+```cpp
+virtual int getExtra(const Player *target) const
+{
+	int x = 0;
+	foreach (const Player *player, target->getAliveSiblings()) {
+		if (player->inMyAttackRange(target))
+			x++;
+	}
+	return x;
+}
+```
+
+这样我们就完成了“固守”第二部分的代码。这部分的完整代码[点击这里查看|../CodeExample/gushou-mc.tmd]。我们让mash添加这个技能：
+
+```cpp
+mash->addSkill(new GushouMC);
+```
+
+至此我们通过拆分成两个技能的方式完成了整个“固守”的代码。但是这样做在逻辑上仍存在一个漏洞：一些角色（如东方启灵阁中的帕秋莉）会在满足一些条件时获得或失去技能，一旦一个像“固守”这样的技能被获得/失去，我们肯定希望距离技和上限技这两部分同时被获得/失去。如果这个技能指明了是“固守”，我们确实可以手动让该角色先获得/失去gushou，再获得/失去#gushou-mc。但有时这个技能是个不确定的变量，具体是什么技能取决于用户操作，这种方法就不灵了。我们总归不愿意见到一个玩家获得“固守”时，只获得了主技能gushou（也就是拥有原始技能名的那个技能），从而与“固守”的技能描述相悖。
+
+好在，东方启灵阁为扩展包对象添加了一个属性`related_skills`，这是一个键与值均为QString类型的QMultiMap容器，该类型通过`insertMulti`方法插入一个键值对，并且允许一键对多值。一旦两个技能的技能名被发现在`related_skills`里有键值对关系，则当某个角色获得/失去其中一个技能时，也会获得/失去另一个技能。利用一对多的性质，这种关系是可传递的，也就是说，在下列情形下：
+
+```cpp
+related_skills.insertMulti("skill_a", "skill_b");
+related_skills.insertMulti("skill_a", "skill_c");
+```
+
+则skill_a、skill_b和skill_c一定会同时被某个角色获得/失去。
+
+现在我们要做的就是把gushou和#gushou-mc关联起来。为了便于阅读，我们选择在让mash获得`GushouMC`的代码后一行放置关联两个技能的代码。
+
+```cpp
+related_skills.insertMulti("gushou", "#gushou-mc");
+```
+
+这样才算是完成了添加“固守”这个技能所需要的全部代码。
+
+=						=
+[上一节|Initial.tmd]		[下一节|TMS-ARS.tmd]

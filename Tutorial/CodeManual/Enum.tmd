@@ -1,0 +1,61 @@
+# 常用枚举类型
+
+**本文档属于东方启灵阁开发手册。不参与源代码开发的用户可以忽略这部分内容。**
+
+^ 身份
+
+=			=			=
+*身份		英文			枚举值
+主公			lord		Player::Lord
+忠臣			loyalist	Player::Loyalist
+反贼			rebel		Player::Rebel
+内奸			renegade	Player::Renegade
+
+^ 阶段
+
+=					=
+*阶段 				枚举值
+回合开始				Player::RoundStart
+准备阶段				Player::Start
+判定阶段				Player::Judge
+摸牌阶段				Player::Draw
+出牌阶段				Player::Play
+弃牌阶段				Player::Discard
+结束阶段				Player::Finish
+回合外				Player::NotActive
+无					Player::PhaseNone
+
+^ 牌的位置
+
+=					=
+*位置				枚举值
+手牌					Player::PlaceHand
+装备区				Player::PlaceEquip
+判定区				Player::PlaceDelayedTrick
+判定牌处理区			Player::PlaceJudge
+移出游戏				Player::PlaceSpecial
+弃牌堆				Player::DiscardPile
+摸牌堆				Player::DrawPile
+结算区				Player::PlaceTable
+未知					Player::PlaceUnknown
+五谷丰登				Player::PlaceWuGu
+
+^ 牌的处理逻辑
+
+=				=
+*处理逻辑			枚举值
+无				Card::MethodNone
+使用				Card::MethodUse
+响应/打出			Card::MethodResponse
+弃置				Card::MethodDiscard
+重铸				Card::MethodRecast
+拼点				Card::MethodPindian
+
+^ 牌的使用形式
+
+=				=												=
+*使用形式			枚举值											十六进制值
+未知				CardUseStruct::CARD_USE_REASON_UNKNOWN			0x00
+出牌阶段使用		CardUseStruct::CARD_USE_REASON_PLAY				0x01
+打出				CardUseStruct::CARD_USE_REASON_RESPONSE			0x02
+响应使用			CardUseStruct::CARD_USE_REASON_RESPONSE_USE		0x12

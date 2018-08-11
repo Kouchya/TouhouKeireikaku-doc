@@ -1,0 +1,23 @@
+# 总览
+
+**本文档属于东方启灵阁开发手册。不参与源代码开发的用户可以忽略这部分内容。**
+
+## API
+
+点击下列条目可以进入相应的常用API页面：
+
+[Room/房间|./Room.tmd]
+[Player/玩家|./Player.tmd]
+[ServerPlayer/服务端玩家信息|./ServerPlayer.tmd]
+[Card/卡牌|./Card.tmd]
+[Engine/核心逻辑|./Engine.tmd]
+
+## 常数·名称相关
+
+点击下列条目可以进入相应的常数或名称页面：
+
+[卡牌信息|./CardContent.tmd]
+[常用结构体|./Structs.tmd]
+[事件|./Events.tmd]
+[技能类型|./SkillClass.tmd]
+[常用枚举类型|./Enum.tmd]

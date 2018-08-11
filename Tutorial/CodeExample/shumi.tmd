@@ -1,0 +1,32 @@
+# 数秘
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class Shumi : public OneCardViewAsSkill
+{
+
+public:
+	Shumi() : OneCardViewAsSkill("shumi")
+	{
+		filter_pattern = ".|heart|2~9|hand";
+	}
+
+	virtual bool isEnabledAtPlay(const Player *player) const
+	{
+		return !player->isKongcheng();
+	}
+
+	virtual const Card *viewAs(const Card *originalCard) const
+	{
+		MindReading *card = new MindReading(Card::SuitToBeDecided, -1);
+		card->addSubcard(originalCard);
+		card->setSkillName(objectName());
+		return card;
+	}
+};
+```
+
+[点击此处返回第三节|../PackageTutorial/VS-OCV.tmd#单牌视为技]

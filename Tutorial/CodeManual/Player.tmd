@@ -1,0 +1,100 @@
+# 玩家Player
+
+**本文档属于东方启灵阁开发手册。不参与源代码开发的用户可以忽略这部分内容。**
+
+^ 常用API
+
+? int Player::getHp() **const**
+
+- 返回一个整数，为玩家当前体力值。
+
+? int Player::getMaxHp() **const**
+
+- 返回一个整数，为玩家体力上限。
+
+? int Player::getLostHp() **const**
+
+- 返回一个整数，为玩家已损失体力值。
+
+? bool Player::isWounded() **const**
+
+- 返回一个布尔值，`true`表示玩家已受伤。
+
+? QString Player::getKingdom() **const**
+
+- 返回一个QString，为玩家的势力。
+
+? int Player::distanceTo(**const** Player \**other*, int *distance_fix* = 0) **const**
+
+- 返回一个整数，为玩家到*other*的距离。
+- 参数解释：
+  - *distance_fix*：整数，额外的距离加成，缺省值为0。
+
+? int Player::getAttackRange(bool *include_weapon* = true) **const**
+
+- 返回一个整数，为玩家的攻击范围。
+- 参数解释：
+  - *include_weapon*：布尔类型，计算攻击范围时是否考虑玩家的武器，缺省值为`true`。
+
+? bool Player::inMyAttackRange(**const** Player \**other*, int *distance_fix* = 0) **const**
+
+- 返回一个布尔值，`true`表示*other*在玩家的攻击范围内。
+- 参数解释：
+  - *distance_fix*：整数，额外的距离加成，缺省值为0。
+
+? bool Player::isAlive() **const**
+
+- 返回一个布尔值，`true`表示玩家存活。
+
+? bool Player::isDead() **const**
+
+- 返回一个布尔值，`true`表示玩家死亡。
+
+? bool Player::faceUp() **const**
+
+- 返回一个布尔值，`true`表示玩家正面朝上。
+
+? bool Player::hasSkill(**const** QString &*skill_name*, bool *include_lose* = false) **const**
+
+- 返回一个布尔值，`true`表示玩家拥有名为*skill_name*的技能。
+- 参数解释：
+  - *include_lose*：布尔类型，表示是否考虑玩家曾经拥有但现已失去的技能，缺省值为`false`。
+
+? bool Player::hasSkill(**const** Skill \**skill*, bool *include_lose* = false) **const**
+
+- 返回一个布尔值，`true`表示玩家拥有技能*skill*。
+- 参数解释：
+  - *include_lose*：同上。
+
+? bool Player::isLord() **const**
+
+- 返回一个布尔值，`true`表示玩家为主公。
+
+? bool Player::isCurrent() **const**
+
+- 返回一个布尔值，`true`表示玩家为当前回合角色。
+
+? Player::Phase Player::getPhase() **const**
+
+- 返回一个`Player::Phase`枚举值，为玩家当前所处的阶段。
+- 参见[常用枚举类型|./Enum.tmd]。
+
+? bool Player::isKongcheng() **const**
+
+- 返回一个布尔值，`true`表示玩家无手牌。
+
+? bool Player::isNude() **const**
+
+- 返回一个布尔值，`true`表示玩家无手牌无装备。
+
+? bool Player::isAllNude() **const**
+
+- 返回一个布尔值，`true`表示玩家无手牌无装备，且判定区内没有牌。
+
+? QList&lt;**const** Player \*\> Player::getSiblings() **const**
+
+- 返回一个元素为`Player`对象的QList容器，为除玩家以外所有存活或死亡或濒死的角色。
+
+? QList&lt;**const** Player \*\> Player::getAliveSiblings() **const**
+
+- 返回一个元素为`Player`对象的QList容器，为除玩家以外所有存活的角色。

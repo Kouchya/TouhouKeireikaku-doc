@@ -1,0 +1,39 @@
+# 魔偶
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class Moou : public ViewAsSkill
+{
+
+public:
+	Moou() : ViewAsSkill("moou")
+	{
+	}
+
+	virtual bool viewFilter(const QList<const Card *> &selected, const Card *to_select) const
+	{
+		return selected.length() < 2 && to_select->isBlack() && !to_select->isEquipped();
+	}
+
+	virtual bool isEnabledAtPlay(const Player *player) const
+	{
+		return player->getHandcardNum() >= 2;
+	}
+
+	virtual const Card *viewAs(const QList<const Card *> &cards) const
+	{
+		if (cards.length() != 2)
+			return NULL;
+
+		SavageAssault *card = new SavageAssault(Card::SuitToBeDecided, -1);
+		card->addSubcards(cards);
+		card->setSkillName(objectName());
+		return card;
+	}
+};
+```
+
+[点击此处返回第三节|../PackageTutorial/VS-OCV.tmd#视为技]

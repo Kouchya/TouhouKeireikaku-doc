@@ -1,0 +1,60 @@
+name: documents
+default: overview
+children:
+  - name: overview
+  - name: GameManual
+    title: 入坑手册
+    default: overview
+    children:
+      - name: overview
+      - name: Rule
+      - name: Cards
+        title: 卡牌介绍
+        default: overview
+        children:
+          - name: overview
+          - name: Slash
+          - name: Jink
+          - name: Peach
+      - name: Generals
+        title: 武将详解
+        default: overview
+        children:
+          - name: overview
+          - name: THStandard
+            title: 标准包
+            default: overview
+            children:
+              - name: overview
+              - name: reimu
+  - name: Tutorial
+    title: 开发教程
+    default: overview
+    children:
+      - name: overview
+      - name: PackageTutorial
+        title: 扩展包教程
+        default: Initial
+        children:
+          - name: Initial
+          - name: PS-DS-MCS
+          - name: TMS-ARS
+          - name: VS-OCV
+      - name: AdvancedPackTutorial
+        title: 扩展包进阶教程
+        default: Initial
+        children:
+          - name: Initial
+      - name: AITutorial
+        title: AI教程
+        default: Initial
+        children:
+          - name: Initial
+      - name: CodeManual
+        title: 开发手册
+        default: overview
+        children:
+          - name: overview
+          - name: Player
+          - name: CardContent
+          - name: Enum

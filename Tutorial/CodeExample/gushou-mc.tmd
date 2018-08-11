@@ -1,0 +1,28 @@
+# 固守（上限技部分）
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class GushouMC : public MaxCardsSkill
+{
+
+public:
+	GushouMC() : MaxCardsSkill("#gushou-mc")
+	{
+	}
+
+	virtual int getExtra(const Player *target) const
+	{
+		int x = 0;
+		foreach (const Player *player, target->getAliveSiblings()) {
+			if (player->inMyAttackRange(target))
+				x++;
+		}
+		return x;
+	}
+};
+```
+
+[点击此处返回第一节|../PackageTutorial/PS-DS-MCS.tmd#上限技]

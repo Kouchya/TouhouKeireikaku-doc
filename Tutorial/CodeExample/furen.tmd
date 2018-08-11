@@ -1,0 +1,39 @@
+# 覆刃
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class Furen : public ViewAsSkill
+{
+
+public:
+	Furen() : ViewAsSkill("furen")
+	{
+	}
+
+	virtual bool viewFilter(const QList<const Card *> &, const Card *to_select) const
+	{
+		return !to_select->isEquipped();
+	}
+
+	virtual bool isEnabledAtPlay(const Player *player) const
+	{
+		return !player->isKongcheng();
+	}
+
+	virtual const Card *viewAs(const QList<const Card *> &cards) const
+	{
+		if (cards.length() != Self->getHandcardNum() || cards.isEmpty())
+			return NULL;
+
+		ArcheryAttack *card = new ArcheryAttack(Card::SuitToBeDecided, -1);
+		card->addSubcards(cards);
+		card->setSkillName(objectName());
+		return card;
+	}
+};
+```
+
+[点击此处返回第三节|../PackageTutorial/VS-OCV.tmd#练习]
