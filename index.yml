@@ -16,6 +16,7 @@ children:
           - name: Slash
           - name: Jink
           - name: Peach
+          - name: Analeptic
       - name: Generals
         title: 武将详解
         default: overview
@@ -27,6 +28,8 @@ children:
             children:
               - name: overview
               - name: reimu
+              - name: marisa
+              - name: suika
   - name: Tutorial
     title: 开发教程
     default: overview
