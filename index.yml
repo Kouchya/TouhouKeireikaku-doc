@@ -17,6 +17,9 @@ children:
           - name: Jink
           - name: Peach
           - name: Analeptic
+          - name: Dismantlement
+          - name: Snatch
+          - name: ExNihilo
       - name: Generals
         title: 武将详解
         default: overview
@@ -30,6 +33,7 @@ children:
               - name: reimu
               - name: marisa
               - name: suika
+              - name: aya
   - name: Tutorial
     title: 开发教程
     default: overview
@@ -43,6 +47,7 @@ children:
           - name: PS-DS-MCS
           - name: TMS-ARS
           - name: VS-OCV
+          - name: FS
       - name: AdvancedPackTutorial
         title: 扩展包进阶教程
         default: Initial

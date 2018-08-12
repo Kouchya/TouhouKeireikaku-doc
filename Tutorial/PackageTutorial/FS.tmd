@@ -1,0 +1,45 @@
+# 四、强制转化
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+^ 引言
+
+[上一节|VS-OCV.tmd]我们介绍了视为技，一种能将实体牌转化为其他牌的技能，并介绍了在子卡数为1时的特殊情形——单牌视为技。本节我们将精力放在另一种特殊的视为技上，它将剥夺任何满足条件的实体牌的原有效果，强制地将其转化为另一种牌。
+
+>r ViewAsSkill：视为技，能够将实体牌转化为其他牌（包括`SkillCard`）
+ZeroCardViewAsSkill：零牌视为技，视为技的子类
+OneCardViewAsSkill：单牌视为技，视为技的子类
+**FilterSkill：锁定视为技，强制转化实体牌的内容**
+TriggerSkill：触发技，满足一定条件时询问或锁定发动
+*MasochismSkill：卖血技，触发技以`Damaged`为事件的子类*
+*PhaseChangeSkill：阶段转换技，触发技以`EventPhaseChanging`为事件的子类*
+*DrawCardsSkill：摸牌技，触发技的子类，控制摸牌阶段摸牌数量*
+*GameStartSkill：游戏开始技，触发技以`GameStart`为事件的子类*
+【已完成】ProhibitSkill：禁止技，使特定角色不能使用特定牌指定特定角色为目标
+【已完成】DistanceSkill：距离技，改变特定角色之间距离计算
+【已完成】MaxCardsSkill：上限技，改变手牌上限
+【已完成】TargetModSkill：修饰技，改变使用特定实体牌可指定的目标数、距离限制等
+【已完成】AttackRangeSkill：攻击范围技，改变攻击范围
+*SlashNoDistanceLimitSkill：无限范围技，取消使用【杀】的距离限制*
+InvaliditySkill：无效技，使特定技能无效
+*FakeMoveSkill：临时移动技，一些特定技能需要分步移动牌，此类技能保证分步移动全程能够等效于一步移动（在触发一些触发技时表现为一步移动的效果）*
+
+*注：到后面的章节，读者将意识到我们还远未介绍完视为技相关的内容，因此我们并不在`ViewAsSkill`和`OneCardViewAsSkill`两项前加上“已完成”的标识。*
+
+按惯例我们创建一个角色：Fate系列的佐佐木小次郎。
+
+```cpp
+General *kojirou = new General(this, "kojirou", "assassin", 4);
+```
+
+^ 锁定视为技
+
+我们给kojirou一个技能：
+
+>g 【止水】**锁定技，**你的除【无懈可击】外的黑色锦囊牌均视为【决斗】。
+
+这个技能显然是一个视为技，然而不同的是，它是一个强制转化的视为技。换言之，满足条件的牌必须被当作描述中指定的那张转化后的牌。这样的技能称为**锁定视为技**，其抽象类为`FilterSkill`。
+
+锁定视为技的基本性质是：子卡数目一定为1。这是因为“将多张牌强制视为某一张牌”这个效果在游戏操作上没有意义。事实上，`FilterSkill`是`OneCardViewAsSkill`的子类，并且毫无更改或增添地继承了父类的全部的属性及成员函数。但是，我们在写锁定视为技时，需要采用与视为技不尽相同的思路来实现“强制”。
+
+我们首先介绍东方启灵阁的一个概念：封装牌`WrappedCard`。

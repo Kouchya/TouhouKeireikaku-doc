@@ -5,6 +5,7 @@
 =									=										=
 [杀|!documents/Images/slash.png]		[火杀|!documents/Images/fire_slash.png]	[雷杀|!documents/Images/thunder_slash.png]
 
+- 类别：基本牌
 - 使用时机：出牌阶段
 - 目标：攻击范围内的一名其他角色
 - 效果：对目标造成1点无属性/火焰/雷电伤害（对应杀/火杀/雷杀）
