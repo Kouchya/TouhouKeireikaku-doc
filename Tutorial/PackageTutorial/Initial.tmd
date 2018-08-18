@@ -52,6 +52,21 @@ public:
 #include "general.h"
 ```
 
+此外，一般而言武将扩展包还需要编写各武将的技能代码。为了后续的技能代码能够正常执行，我们还需要引入以下包：
+
+```cpp
+#include "skill.h"          // module of skill abstract class
+#include "standard.h"       // module of some standard features of cards
+#include "engine.h"         // module of engine class, including some core functions
+#include "client.h"         // module of client
+#include "clientplayer.h"   // module of player of display view (client view)
+#include "carditem.h"       // module of card items
+#include "WrappedCard.h"    // module of wrapped card (used mainly in FilterSkill)
+#include "room.h"           // module of room class
+#include "roomthread.h"     // module of event threads
+#include "maneuvering.h"    // module of a particular card package
+```
+
 添加武将是在`TutorPackage`类的构造函数中实现的。为了写这个构造函数，我们需要知道它的父类`Package`的构造函数有哪些参数。这在src/package/package.h中可以找到。
 
 ? Package::Package(**const** QString &*name*, Type *pack_type* = GeneralPack)

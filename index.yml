@@ -20,6 +20,7 @@ children:
           - name: Dismantlement
           - name: Snatch
           - name: ExNihilo
+          - name: Collateral
       - name: Generals
         title: 武将详解
         default: overview
@@ -34,6 +35,8 @@ children:
               - name: marisa
               - name: suika
               - name: aya
+              - name: cirno
+              - name: remilia
   - name: Tutorial
     title: 开发教程
     default: overview

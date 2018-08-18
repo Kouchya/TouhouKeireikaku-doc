@@ -1,0 +1,28 @@
+# 甘醴
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class Ganli : public FilterSkill
+{
+	
+public:
+	Ganli() : FilterSkill("ganli")
+	{
+		filter_pattern = "Analeptic";
+	}
+	
+	const Card *viewAs(const Card *originalCard) const
+	{
+		WrappedCard *card = Sanguosha->getWrappedCard(originalCard->getId());
+		Peach *peach = new Peach(Card::SuitToBeDecided, -1);
+		peach->setSkillName(objectName());
+		card->takeOver(peach);
+		return card;
+	}
+};
+```
+
+[点击此处返回第四节|../PackageTutorial/FS.tmd#练习]

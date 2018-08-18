@@ -43,3 +43,82 @@ General *kojirou = new General(this, "kojirou", "assassin", 4);
 锁定视为技的基本性质是：子卡数目一定为1。这是因为“将多张牌强制视为某一张牌”这个效果在游戏操作上没有意义。事实上，`FilterSkill`是`OneCardViewAsSkill`的子类，并且毫无更改或增添地继承了父类的全部的属性及成员函数。但是，我们在写锁定视为技时，需要采用与视为技不尽相同的思路来实现“强制”。
 
 我们首先介绍东方启灵阁的一个概念：封装牌`WrappedCard`。
+
+所谓封装牌，顾名思义，就是在原来的实体牌上外包了一层“包装”。这层包装起到的作用是：在不改变实体牌本身属性的情况下修改牌面信息。这就好比一块巧克力馅饼，我们把它原有的包装盒扔掉，用一块小红莓馅饼的包装盒代替，我们并没有换掉这块馅饼本身，但由于封装它的包装盒是小红莓馅饼的，众人都会以为这是一块小红莓馅饼。同样，我们在一张【杀】实体牌外面套上一层包装，包装上写着【闪】的牌面信息，那么系统就会以为这是一张【闪】，并且全程将它当作【闪】一样进行各种结算处理。这个套包装的过程是我们通过锁定视为技的代码让程序自动执行的，并非玩家主动发动，因此系统把原来的牌“以为”成另一张牌的过程是强制性的。
+
+在“止水”的例子中，被封装的牌是任何除【无懈可击】以外的黑色锦囊牌，外面那张包装纸是【决斗】。那么我们首先在构造函数中写出`filter_pattern`：
+
+```cpp
+class Zhishui : public FilterSkill
+{
+
+public:
+	Zhishui() : FilterSkill("zhishui")
+	{
+		filter_pattern = "TrickCard+^Nullification|black";
+	}
+
+	// TODO: methods...
+};
+```
+
+由于锁定视为技在任何场合生效，并非在出牌阶段主动发动，故`isEnabledAtPlay`这部分不用写，我们只需把精力放在`viewAs`上即可。首先我们需要制造一张封装牌，其底牌应当是满足`filter_pattern`的牌：
+
+```cpp
+virtual const Card *viewAs(const Card *originalCard) const
+{
+	WrappedCard *card = Sanguosha->getWrappedCard(originalCard->getId());
+
+	// TODO: wrap the card
+}
+```
+
+上述`viewAs`函数内部的这一行代码信息量很大。首先，我们注意到代码中有一个未遇到过的`Sanguosha`对象，这其实是程序在engine.h中定义的一个extern变量，为一个`Engine`实例。这个extern变量是全局的，因此在任何场合都可以使用。`Engine`对象通常管理着大量较为核心和基本的游戏系统逻辑层面的代码，可谓是整个项目的心脏。关于`Engine`管理的各API详见[手册|../CodeManual/Engine.tmd]。这里我们用到的是`Engine::getWrappedCard`这个API：
+
+? WrappedCard \*Engine::getWrappedCard(int *cardId*) **const**;
+
+其参数是一个整数，是一张牌的`id`。所谓一张牌的`id`，是指这张牌在游戏开始时便生成的一个独一无二且始终不变的编号。所有的`id`与所有的牌（实体的和抽象的）是一一对应的，因此给定一个具体的`id`，总能唯一地返回一张牌。这个API的功能就是，找到`id`为*cardId*的那张牌，然后以它为底牌创建一张封装牌。然而我们的`viewAs`事实上只传入了底牌`originalCard`本身，因此我们还需要调用`Card`对象的下述API：
+
+? int Card::getId() **const**;
+
+其作用是获得一张牌的`id`。因此，上述代码中`getWrappedCard`的参数为`originalCard->getId()`。
+
+底牌有了，接下来就是制作包装纸。本例中我们的包装纸是一张【决斗】，我们像视为技中做的那样直接创建它，并给它设置技能名：
+
+```cpp
+Duel *duel = new Duel(Card::SuitToBeDecided, -1);
+duel->setSkillName(objectName());
+```
+
+在视为技中，下一步是将`originalCard`作为子卡传给`duel`，但锁定视为技中，二者不再由子卡关系联系，而是封装与被封装的关系。我们要做的，是将创建好的`duel`这张包装纸包在封装牌`card`的外面。这里利用API：
+
+? void WrappedCard::takeOver(Card \**card*);
+
+其功能是将*card*作为包装纸封装到`WrappedCard`对象外面。因此我们的下一行代码是：
+
+```cpp
+card->takeOver(duel);
+```
+
+最后我们返回打包完毕的封装牌：
+
+```cpp
+return card;
+```
+
+“止水”的技能代码就完成了。完整的代码[点击这里查看|../CodeExample/zhishui.tmd]。总结一下锁定视为技的思路：首先利用`Engine`的`getWrappedCard`方法创建封装牌的底牌，其次正常地创建要转化成的牌作为包装纸并为之设置技能名，然后利用封装牌的`takeOver`方法将包装纸封装到底牌外面，做成一张完整的封装牌，最后返回这张封装牌。
+
+^ 练习
+
+--*嘿！我看见你在想着逃跑！给我乖♂乖站好*--
+
+完成东方启灵阁中[秋穰子|../../GameManual/Generals/THStandard/minoriko.tmd]的“甘醴”代码。
+
+答案：
+
+--这么简单还要看答案简直是【哔——】--
+
+[【甘醴】代码|../CodeExample/ganli.tmd]
+
+=						=
+[上一节|VS-OCV.tmd]		下一节

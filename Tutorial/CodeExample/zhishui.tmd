@@ -1,0 +1,28 @@
+# 止水
+
+**本文档属于东方启灵阁扩展包开发教程系列。不参与源代码开发的用户可以忽略这部分内容。教程要求用户有一定的C++面向对象编程基础。**
+
+## 代码
+
+```cpp
+class Zhishui : public FilterSkill
+{
+
+public:
+	Zhishui() : FilterSkill("zhishui")
+	{
+		filter_pattern = "TrickCard+^Nullification|black";
+	}
+
+	virtual const Card *viewAs(const Card *originalCard) const
+	{
+		WrappedCard *card = Sanguosha->getWrappedCard(originalCard->getId());
+		Duel *duel = new Duel(Card::SuitToBeDecided, -1);
+		duel->setSkillName(objectName());
+		card->takeOver(duel);
+		return card;
+	}
+};
+```
+
+[点击此处返回第四节|../PackageTutorial/FS.tmd#锁定视为技]

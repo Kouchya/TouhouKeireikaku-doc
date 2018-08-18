@@ -7,6 +7,16 @@
 ```cpp
 #include "tutor.h"
 #include "general.h"
+#include "skill.h"
+#include "standard.h"
+#include "engine.h"
+#include "client.h"
+#include "clientplayer.h"
+#include "carditem.h"
+#include "WrappedCard.h"
+#include "room.h"
+#include "roomthread.h"
+#include "maneuvering.h"
 
 TutorPackage::TutorPackage() : Package("tutor")
 {
