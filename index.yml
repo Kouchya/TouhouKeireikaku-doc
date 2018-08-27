@@ -48,6 +48,7 @@ children:
               - name: kyouko
               - name: nitori
               - name: pachouli
+              - name: alice
   - name: Tutorial
     title: 开发教程
     default: overview
