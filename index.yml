@@ -21,6 +21,13 @@ children:
           - name: Snatch
           - name: ExNihilo
           - name: Collateral
+          - name: IcyFog
+          - name: Haze
+          - name: Duel
+          - name: AmazingGrace
+          - name: MindReading
+          - name: SavageAssault
+          - name: ArcheryAttack
       - name: Generals
         title: 武将详解
         default: overview
@@ -37,6 +44,10 @@ children:
               - name: aya
               - name: cirno
               - name: remilia
+              - name: flandre
+              - name: kyouko
+              - name: nitori
+              - name: pachouli
   - name: Tutorial
     title: 开发教程
     default: overview
