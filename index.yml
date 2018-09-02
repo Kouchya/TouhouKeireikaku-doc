@@ -28,6 +28,8 @@ children:
           - name: MindReading
           - name: SavageAssault
           - name: ArcheryAttack
+          - name: GodSalvation
+          - name: Nullification
       - name: Generals
         title: 武将详解
         default: overview
@@ -50,6 +52,7 @@ children:
               - name: pachouli
               - name: alice
               - name: letty
+              - name: sanae
   - name: Tutorial
     title: 开发教程
     default: overview
