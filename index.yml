@@ -30,6 +30,11 @@ children:
           - name: ArcheryAttack
           - name: GodSalvation
           - name: Nullification
+          - name: FireAttack
+          - name: IronChain
+          - name: Lightning
+          - name: Indulgence
+          - name: SupplyShortage
       - name: Generals
         title: 武将详解
         default: overview
@@ -53,6 +58,17 @@ children:
               - name: alice
               - name: letty
               - name: sanae
+              - name: kanako
+              - name: suwako
+              - name: satori
+              - name: koishi
+              - name: mystia
+              - name: yamame
+              - name: shizuha
+              - name: minoriko
+              - name: tewi
+              - name: reisen
+              - name: iku
   - name: Tutorial
     title: 开发教程
     default: overview
